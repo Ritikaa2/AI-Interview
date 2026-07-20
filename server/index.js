@@ -21,6 +21,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://ai-interview-agent-woad.vercel.app",
+  "https://ai-interview-frontend-phi.vercel.app",
 ].filter(Boolean);
 
 const corsOptions = {
