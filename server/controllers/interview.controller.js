@@ -4,13 +4,51 @@ import { askAi } from "../services/openRouter.service.js";
 import User from "../models/user.model.js";
 import Interview from "../models/interview.model.js";
 
+// Resume analysis
+// AI question generation
+// Answer evaluation
+// Final score calculation
+// Interview reports
+
+const parseAiJson = (content, label) => {
+  const trimmed = String(content || "")
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const firstBrace = trimmed.indexOf("{");
+    const lastBrace = trimmed.lastIndexOf("}");
+
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+    }
+
+    throw new Error(`AI returned invalid JSON for ${label}`);
+  }
+};
+
+const normalizeStringArray = (value) =>
+  Array.isArray(value)
+    ? value.map((item) => String(item).trim()).filter(Boolean)
+    : [];
+
+const cleanQuestion = (question) =>
+  String(question || "")
+    .trim()
+    .replace(/^[-*•]\s*/, "")
+    .replace(/^\d+[\).:-]?\s*/, "")
+    .trim();
+
 export const analyzeResume = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "Resume required" });
     }
     const filePath = req.file.path;
-
     const fileBuffer = await fs.promises.readFile(filePath);
     const uint8Array = new Uint8Array(fileBuffer);
 
@@ -28,6 +66,10 @@ export const analyzeResume = async (req, res) => {
     }
 
     resumeText = resumeText.replace(/\s+/g, " ").trim();
+
+    if (!resumeText) {
+      throw new Error("Could not extract readable text from this PDF");
+    }
 
     const messages = [
       {
@@ -52,15 +94,15 @@ Return strictly JSON:
     ];
 
     const aiResponse = await askAi(messages);
-    const parsed = JSON.parse(aiResponse);
+    const parsed = parseAiJson(aiResponse, "resume analysis");
 
     fs.unlinkSync(filePath);
 
     res.json({
-      role: parsed.role,
-      experience: parsed.experience,
-      projects: parsed.projects,
-      skills: parsed.skills,
+      role: parsed.role || "",
+      experience: parsed.experience || "",
+      projects: normalizeStringArray(parsed.projects),
+      skills: normalizeStringArray(parsed.skills),
       resumeText,
     });
   } catch (error) {
@@ -167,7 +209,7 @@ Make questions based on the candidate’s role, experience, interviewMode, proje
 
     const questionArray = aiResponse
       .split("\n")
-      .map((q) => q.trim())
+      .map(cleanQuestion)
       .filter((q) => q.length > 0)
       .slice(0, 5);
 
@@ -299,7 +341,7 @@ Answer: ${answer}
     let parsed;
 
     try {
-      parsed = JSON.parse(aiResponse);
+      parsed = parseAiJson(aiResponse, "answer evaluation");
     } catch {
       throw new Error("AI returned invalid JSON");
     }

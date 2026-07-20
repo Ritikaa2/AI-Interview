@@ -1,5 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
+
 import React from "react";
 import maleVideo from "../assets/videos/male-ai.mp4";
 import femaleVideo from "../assets/videos/female-ai.mp4";
@@ -10,9 +9,11 @@ import { useState } from "react";
 import { useRef } from "react";
 import { useEffect } from "react";
 import axios from "axios";
-import { ServerUrl } from "../App";
+import { ServerUrl } from "../config/api.js";
 import { BsArrowRight } from "react-icons/bs";
 
+//It displays questions, takes voice/text answers from
+//  the user, sends them to the backend for AI evaluation
 const Step2Interview = ({ interviewData, onFinish }) => {
   const { interviewId, questions, userName } = interviewData;
 

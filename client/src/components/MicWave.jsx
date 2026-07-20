@@ -3,7 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 
 const bars = [1, 2, 3, 4, 5, 6, 7];
-
+//animated microphone waveform
 const MicWave = () => {
   return (
     <div className="flex items-center gap-1">

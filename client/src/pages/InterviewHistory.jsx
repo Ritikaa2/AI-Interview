@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ServerUrl } from "../App";
+import { ServerUrl } from "../config/api.js";
 import { FaArrowLeft } from "react-icons/fa";
 import { motion } from "framer-motion";
 

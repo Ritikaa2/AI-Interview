@@ -17,9 +17,11 @@ app.use(express.json());
 app.use(cookieParser());
 
 const allowedOrigins = [
+  process.env.CLIENT_URL,
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://ai-interview-agent-woad.vercel.app",
-];
+].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {

@@ -49,7 +49,7 @@ const AuthModel = ({ onclose }) => {
             <Auth isModel={true} />
 
             <p className="text-[11px] text-gray-500 text-center mt-5">
-              Secure authentication â€¢ No spam â€¢ Privacy first
+              Secure authentication • No spam • Privacy first
             </p>
           </div>
         </div>
@@ -59,3 +59,4 @@ const AuthModel = ({ onclose }) => {
 };
 
 export default AuthModel;
+

@@ -11,6 +11,23 @@ const userSchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
+    password: {
+      type: String,
+      default: null,
+    },
+    authProvider: {
+      type: String,
+      enum: ["google", "local"],
+      default: "google",
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
     credits: {
       type: Number,
       default: 100,

@@ -2,6 +2,10 @@ import axios from "axios";
 
 export const askAi = async (messages) => {
   try {
+    if (!process.env.OPENROUTER_API_KEY) {
+      throw new Error("OpenRouter API key is not configured in server .env");
+    }
+
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       throw new Error("Message array is empty.");
     }
@@ -28,6 +32,10 @@ export const askAi = async (messages) => {
     return content;
   } catch (error) {
     console.error("OpenRouter Error:", error.response?.data || error.message);
-    throw new Error("OpenRouter API Error");
+    const providerMessage =
+      error.response?.data?.error?.message ||
+      error.response?.data?.message ||
+      error.message;
+    throw new Error(providerMessage || "OpenRouter API Error");
   }
 };

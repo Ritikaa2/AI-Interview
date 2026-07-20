@@ -4,14 +4,17 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import {
   FaChartLine,
+  FaCheckCircle,
+  FaExclamationCircle,
   FaFileUpload,
   FaMicrophoneAlt,
   FaUserTie,
 } from "react-icons/fa";
-import { ServerUrl } from "../App";
+import { ServerUrl } from "../config/api.js";
 import { useDispatch, useSelector } from "react-redux";
 import { setUserData } from "../redux/userSlice";
-
+//It collects user details, uploads and analyzes the resume using AI, 
+// and sends all information to the backend
 const Step1SetUp = ({ onStart }) => {
   const { userData } = useSelector((state) => state.user);
   const dispatch = useDispatch();
@@ -26,9 +29,24 @@ const Step1SetUp = ({ onStart }) => {
   const [resumeText, setResumeText] = useState("");
   const [analysisDone, setAnalysisDone] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const getErrorMessage = (requestError) =>
+    requestError.response?.data?.message ||
+    requestError.message ||
+    "Something went wrong. Please try again.";
 
   const handleUploadResume = async () => {
     if (!resumeFile || analyzing) return;
+
+    if (resumeFile.type !== "application/pdf") {
+      setError("Please upload a PDF resume.");
+      return;
+    }
+
+    setError("");
+    setNotice("");
     setAnalyzing(true);
 
     const formData = new FormData();
@@ -47,32 +65,54 @@ const Step1SetUp = ({ onStart }) => {
       setSkills(result.data.skills || []);
       setResumeText(result.data.resumeText || "");
       setAnalysisDone(true);
-
-      setAnalyzing(false);
+      setNotice("Resume analyzed successfully. Review the details and start your interview.");
     } catch (error) {
       console.log(error);
+      setError(getErrorMessage(error));
+    } finally {
       setAnalyzing(false);
     }
   };
 
   const handleStart = async () => {
+    if (!userData) {
+      setError("Please login before starting an interview.");
+      return;
+    }
+
+    if (!role.trim() || !experience.trim()) {
+      setError("Role and experience are required to start the interview.");
+      return;
+    }
+
+    setError("");
+    setNotice("");
     setLoading(true);
+
     try {
       const result = await axios.post(
         ServerUrl + "/api/interview/generate-questions",
-        { role, experience, mode, resumeText, projects, skills },
+        {
+          role: role.trim(),
+          experience: experience.trim(),
+          mode,
+          resumeText,
+          projects,
+          skills,
+        },
         { withCredentials: true },
       );
 
-      if (userData) {
-        dispatch(
-          setUserData({ ...userData, credits: result.data.creditsLeft }),
-        );
-        setLoading(false);
-        onStart(result.data);
+      if (!result.data?.questions?.length) {
+        throw new Error("Interview questions were not generated. Please try again.");
       }
+
+      dispatch(setUserData({ ...userData, credits: result.data.creditsLeft }));
+      onStart(result.data);
     } catch (error) {
       console.log(error);
+      setError(getErrorMessage(error));
+    } finally {
       setLoading(false);
     }
   };
@@ -166,9 +206,27 @@ const Step1SetUp = ({ onStart }) => {
               onChange={(e) => setMode(e.target.value)}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 focus:border-amber-400 outline-none"
             >
-              <option value="Technical">Technical Interview</option>
-              <option value="HR">HR Interview</option>
+              <option value="Technical" className="bg-[#0b0f14]">
+                Technical Interview
+              </option>
+              <option value="HR" className="bg-[#0b0f14]">
+                HR Interview
+              </option>
             </select>
+
+            {error && (
+              <div className="flex items-start gap-3 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                <FaExclamationCircle className="mt-0.5 shrink-0 text-red-300" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {notice && (
+              <div className="flex items-start gap-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                <FaCheckCircle className="mt-0.5 shrink-0 text-emerald-300" />
+                <span>{notice}</span>
+              </div>
+            )}
 
             {!analysisDone && (
               <motion.div
@@ -183,7 +241,16 @@ const Step1SetUp = ({ onStart }) => {
                   accept="application/pdf"
                   id="resumeUpload"
                   className="hidden"
-                  onChange={(e) => setResumeFile(e.target.files[0])}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setResumeFile(file);
+                    setAnalysisDone(false);
+                    setResumeText("");
+                    setProjects([]);
+                    setSkills([]);
+                    setError("");
+                    setNotice("");
+                  }}
                 />
 
                 <p className="text-gray-400 text-sm">
@@ -192,12 +259,14 @@ const Step1SetUp = ({ onStart }) => {
 
                 {resumeFile && (
                   <motion.button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUploadResume();
                     }}
+                    disabled={analyzing}
                     whileHover={{ scale: 1.02 }}
-                    className="mt-4 bg-amber-500 text-black px-5 py-2 rounded-lg text-sm font-medium"
+                    className="mt-4 bg-amber-500 text-black px-5 py-2 rounded-lg text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {analyzing ? "Analyzing..." : "Analyze Resume"}
                   </motion.button>
@@ -244,10 +313,10 @@ const Step1SetUp = ({ onStart }) => {
 
             <motion.button
               onClick={handleStart}
-              disabled={!role || !experience || loading}
+              disabled={!role || !experience || loading || analyzing}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
-              className="w-full cursor-pointer bg-amber-500 text-black py-3 rounded-xl font-semibold disabled:bg-gray-600 transition"
+              className="w-full cursor-pointer bg-amber-500 text-black py-3 rounded-xl font-semibold disabled:cursor-not-allowed disabled:bg-gray-600 transition"
             >
               {loading ? "Starting..." : "Start Interview"}
             </motion.button>

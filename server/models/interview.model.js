@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// role, experience, questions, answers, feedback, scores, and final result.
 const questionSchema = new mongoose.Schema({
   question: String,
   difficulty: String,
