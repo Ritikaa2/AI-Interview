@@ -22,7 +22,9 @@ const App = () => {
         });
         dispatch(setUserData(result.data));
       } catch (error) {
-        console.log(error);
+        if (error.response?.status !== 401) {
+          console.log(error);
+        }
         dispatch(setUserData(null));
       }
     };
@@ -42,3 +44,4 @@ const App = () => {
 };
 
 export default App;
+
